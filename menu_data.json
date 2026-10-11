@@ -1,0 +1,31 @@
+{
+    "categories": [
+        "uuu"
+    ],
+    "foods": [
+        {
+            "name": "uiy",
+            "price": "6009",
+            "category": "uuu",
+            "image": "",
+            "id": 1
+        }
+    ],
+    "orders": [
+        {
+            "table": "7",
+            "items": [
+                {
+                    "category": "uuu",
+                    "id": 1,
+                    "image": "",
+                    "name": "uiy",
+                    "price": "6009",
+                    "qty": 3
+                }
+            ],
+            "total": "18027",
+            "id": 1
+        }
+    ]
+}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داواکارییە هاتووەکان - ئادمین</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; }
+        
+        .orders-grid { display: flex; flex-direction: column; gap: 15px; }
+        .order-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-right: 5px solid #28a745; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        .order-header h3 { margin: 0; color: #333; }
+        .table-badge { background: #007bff; color: white; padding: 4px 12px; border-radius: 15px; font-size: 14px; }
+        
+        .order-items { margin-bottom: 15px; }
+        .order-item-row { display: flex; justify-content: space-between; padding: 4px 0; color: #555; font-size: 15px; }
+        
+        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; flex-wrap: wrap; gap: 10px; }
+        .total-price { font-weight: bold; color: #28a745; font-size: 16px; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .print-btn { background-color: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .print-btn:hover { background-color: #138496; }
+        .done-btn { background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .done-btn:hover { background-color: #c82333; }
+        
+        .no-orders { text-align: center; color: #777; font-size: 18px; margin-top: 40px; }
+
+        /* تایبەتمەندی چاپکردن بۆ ئەوەی تەنها وەسڵەکە چاپ بکرێت */
+        @media print {
+            body * { visibility: hidden; }
+            .printable-receipt, .printable-receipt * { visibility: visible; }
+            .printable-receipt { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: white; font-family: Tahoma, sans-serif; direction: rtl; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>لیستی داواکارییە نوێیەکانی کڕیاران</h1>
+    
+    <div class="orders-grid" id="ordersContainer">
+        <!-- لێرەدا داواکارییەکان دەردەکەون -->
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://127.0.0.1:5000/api';
+
+    window.onload = function() {
+        fetchOrders();
+        setInterval(fetchOrders, 5000);
+    };
+
+    function fetchOrders() {
+        fetch(`${API_URL}/orders`)
+            .then(res => res.json())
+            .then(orders => {
+                renderOrders(orders);
+            })
+            .catch(err => console.error('هەڵە لە وەرگرتنی داواکارییەکان:', err));
+    }
+
+    function renderOrders(orders) {
+        const container = document.getElementById('ordersContainer');
+        container.innerHTML = '';
+
+        if(orders.length === 0) {
+            container.innerHTML = '<div class="no-orders">هیچ داواکارییەکی نوێ نییە...</div>';
+            return;
+        }
+
+        orders.reverse().forEach(order => {
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <div class="order-item-row">
+                        <span>• ${item.name} (${item.qty} عدد)</span>
+                        <span>${item.price * item.qty} دینار</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML += `
+                <div class="order-card printable-receipt" id="order-${order.id}">
+                    <div class="order-header">
+                        <h3>داواکاری ژمارە #${order.id}</h3>
+                        <span class="table-badge">مێزی ژمارە ${order.table}</span>
+                    </div>
+                    <div class="order-items">
+                        ${itemsHtml}
+                    </div>
+                    <div class="order-footer">
+                        <span class="total-price">کۆی گشتی: ${order.total} دینار</span>
+                        <div class="btn-group no-print">
+                            <button class="print-btn" onclick="printReceipt(${order.id})">🖨️ چاپکردنی وەسڵ</button>
+                            <button class="done-btn" onclick="completeOrder(${order.id})">تەواوبوون / سڕینەوە</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // فەنکشنی چاپکردنی وەسڵی تایبەت بە هەر داواکارییەک
+    function printReceipt(orderId) {
+        const receiptElement = document.getElementById(`order-${orderId}`);
+        window.print();
+    }
+
+    function completeOrder(orderId) {
+        if(confirm('ئایا دڵنیایت کە ئەم داواکارییە ئامادە کرا و دەتەوێت بیسڕیتەوە؟')) {
+            fetch(`${API_URL}/orders/${orderId}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                fetchOrders();
+            })
+            .catch(err => alert('هەڵە ڕویدا'));
+        }
+    }
+</script>
+
+</body>
+</html>

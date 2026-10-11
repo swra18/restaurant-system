@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پەنەلی بەڕێوەبەر - ئادمین</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; direction: rtl; display: none; } /* بە شێوەی دیفۆڵت شاردراوەیە تا پاسۆرد لێدەدرێت */
+        .container { max-width: 850px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .delete-btn { background-color: #dc3545; padding: 5px 10px; font-size: 12px; }
+        .delete-btn:hover { background-color: #c82333; }
+        table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .section-box { background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        ul { padding-right: 20px; }
+        li { margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>پەنەلی بەڕێوەبەر (ئادمین)</h2>
+
+    <!-- بەشی دروستکردن و نیشاندانی بەشەکان -->
+    <div class="section-box">
+        <h3>بەڕێوەبردنی بەشەکان (Categories)</h3>
+        <div class="form-group">
+            <input type="text" id="categoryName" placeholder="ناوی بەشی نوێ بنووسە (وەک: برژاو)...">
+        </div>
+        <button onclick="addCategory()">زیادکردنی بەش</button>
+        
+        <h4 style="margin-top: 15px;">لیستی بەشەکان:</h4>
+        <ul id="categoryList">
+            <!-- لێرەدا بەشەکان دەردەکەون -->
+        </ul>
+    </div>
+
+    <!-- بەشی زیادکردنی خواردن -->
+    <div class="section-box">
+        <h3>زیادکردنی خواردنی نوێ</h3>
+        <div class="form-group">
+            <label>ناوی خواردن:</label>
+            <input type="text" id="foodName" placeholder="بۆ نموونە: بەرگری گۆشت">
+        </div>
+        <div class="form-group">
+            <label>نرخ (دینار):</label>
+            <input type="number" id="foodPrice" placeholder="نرخەکەی بنووسە">
+        </div>
+        <div class="form-group">
+            <label>دیاریکردنی بەش:</label>
+            <select id="foodCategory">
+                <option value="">سەرەتا بەشێک هەڵبژێرە</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>هەڵبژاردنی وێنە لە کۆمپیوتەر:</label>
+            <input type="file" id="foodImageFile" accept="image/*">
+        </div>
+        <button onclick="addFood()">زیادکردنی خواردن بۆ مینۆ</button>
+    </div>
+
+    <!-- لیستی خواردنەکان -->
+    <h3>لیستی خواردنە تۆمارکراوەکان</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>وێنە</th>
+                <th>ناوی خواردن</th>
+                <th>نرخ</th>
+                <th>بەش</th>
+                <th>کردار</th>
+            </tr>
+        </thead>
+        <tbody id="foodTableBody">
+            <!-- لێرەدا زانیارییەکان دەردەکەون -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // سیستەمی پشکنینی پاسۆرد لە کاتی کردنەوەی پەڕە
+    (function checkPassword() {
+        const password = prompt("تکایە پاسۆردی ئادمین بنووسە:");
+        if (password === "swra1234") {
+            document.body.style.display = "block"; // ئەگەر ڕاست بوو، پەڕەکە نیشان بدە
+        } else {
+            alert("پاسۆردەکە هەڵەیە!");
+            window.location.href = "index.html"; // ئەگەر هەڵە بوو، دەیگەڕێنێتەوە بۆ مینۆی سەرەکی
+        }
+    })();
+
+    const API_URL = 'http://127.0.0.1:5000/api';
+
+    window.onload = function() {
+        loadMenuData();
+    };
+
+    function loadMenuData() {
+        fetch(`${API_URL}/menu`)
+            .then(res => res.json())
+            .then(data => {
+                updateCategoriesUI(data.categories);
+                updateFoodsTable(data.foods);
+            })
+            .catch(err => console.error('هەڵە:', err));
+    }
+
+    function updateCategoriesUI(categories) {
+        const select = document.getElementById('foodCategory');
+        const catList = document.getElementById('categoryList');
+        
+        select.innerHTML = '<option value="">بەشێک هەڵبژێرە</option>';
+        catList.innerHTML = '';
+
+        categories.forEach(cat => {
+            select.innerHTML += `<option value="${cat}">${cat}</option>`;
+            catList.innerHTML += `
+                <li>
+                    <span>${cat}</span>
+                    <button class="delete-btn" onclick="deleteCategory('${cat}')">سڕینەوەی بەش</button>
+                </li>
+            `;
+        });
+    }
+
+    function updateFoodsTable(foods) {
+        const tbody = document.getElementById('foodTableBody');
+        tbody.innerHTML = '';
+        foods.forEach(food => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><img src="${food.image || 'https://via.placeholder.com/50'}" width="50" height="50" style="border-radius: 5px; object-fit: cover;"></td>
+                    <td>${food.name}</td>
+                    <td>${food.price} دینار</td>
+                    <td>${food.category}</td>
+                    <td><button class="delete-btn" onclick="deleteFood(${food.id})">سڕینەوە</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function addCategory() {
+        const catName = document.getElementById('categoryName').value.trim();
+        if(!catName) {
+            alert('تکایە ناوی بەشەکە بنووسە!');
+            return;
+        }
+
+        fetch(`${API_URL}/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: catName })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('categoryName').value = '';
+            loadMenuData();
+        })
+        .catch(err => alert('هەڵە ڕویدا'));
+    }
+
+    function deleteCategory(catName) {
+        if(confirm(`ئایا دڵنیایت لە سڕینەوەی بەشی "${catName}"؟`)) {
+            fetch(`${API_URL}/categories/${catName}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                loadMenuData();
+            })
+            .catch(err => alert('هەڵە ڕویدا لە سڕینەوە'));
+        }
+    }
+
+    function addFood() {
+        const name = document.getElementById('foodName').value.trim();
+        const price = document.getElementById('foodPrice').value.trim();
+        const category = document.getElementById('foodCategory').value;
+        const imageFile = document.getElementById('foodImageFile').files[0];
+
+        if(!name || !price || !category) {
+            alert('تکایە خانە سەرەکییەکان پڕبکەرەوە!');
+            return;
+        }
+
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                const base64Image = uploadEvent.target.result;
+                sendFoodData(name, price, category, base64Image);
+            };
+            reader.readAsDataURL(imageFile);
+        } else {
+            sendFoodData(name, price, category, '');
+        }
+    }
+
+    function sendFoodData(name, price, category, image) {
+        const foodItem = { name, price, category, image };
+
+        fetch(`${API_URL}/foods`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(foodItem)
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('foodName').value = '';
+            document.getElementById('foodPrice').value = '';
+            document.getElementById('foodImageFile').value = '';
+            loadMenuData();
+            alert('خواردنەکە بە سەرکەوتوویی زیادکرا!');
+        })
+        .catch(err => alert('هەڵە ڕویدا'));
+    }
+
+    function deleteFood(foodId) {
+        if(confirm('دڵنیایت لە سڕینەوەی ئەم خواردنە؟')) {
+            fetch(`${API_URL}/foods/${foodId}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                loadMenuData();
+            })
+            .catch(err => alert('هەڵە ڕویدا لە سڕینەوە'));
+        }
+    }
+</script>
+
+</body>
+</html>
